@@ -25,7 +25,7 @@ class Login extends Component {
     let userError = '';
     let passError = '';
     let emailError = '';
-    if (this.state.user.length < 8 && this.state.login===0) {
+    if (this.state.user.length < 8 && this.state.login === 0) {
       userError = "User name must be greater than 7 in length";
       valid = false;
     }
@@ -81,7 +81,7 @@ class Login extends Component {
       } else {
         var email = this.state.email;
         var password = this.state.pass;
-        firebase.auth().signInWithEmailAndPassword(email, password).then(()=>{
+        firebase.auth().signInWithEmailAndPassword(email, password).then(() => {
           console.log('logged in');
           //go to game page
         }).catch(function (error) {
@@ -142,7 +142,7 @@ class Login extends Component {
                           class="input"
                           type="password"
                           name="pass"
-                          onChange={(e)=>{this.handleChange(e);}}
+                          onChange={(e) => { this.handleChange(e); }}
                           placeholder="password"
                         ></input>
                       </div>
