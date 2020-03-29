@@ -60,9 +60,9 @@ class Login extends Component {
             alert('Email Verification Sent!');
           });
       }).catch(function (error) {
-        var errorCode = error.code;
-        var errorMessage = error.message;
-        this.setState({ authError: errorMessage });
+        // var errorCode = error.code;
+        // var errorMessage = error.message;
+        this.setState({ authError: error.message });
         // if (errorCode === 'auth/weak-password') {
         //   alert('The password is too weak.');
         // } else {
