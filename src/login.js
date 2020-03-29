@@ -25,7 +25,7 @@ class Login extends Component {
     let userError = '';
     let passError = '';
     let emailError = '';
-    if (this.state.user.length < 8) {
+    if (this.state.user.length < 8 && this.state.login===0) {
       userError = "User name must be greater than 7 in length";
       valid = false;
     }
@@ -118,7 +118,7 @@ class Login extends Component {
                         <input
                           class="input"
                           type="password"
-                          div="pass"
+                          name="pass"
                           onChange={(e)=>{this.handleChange(e);}}
                           placeholder="password"
                         ></input>
