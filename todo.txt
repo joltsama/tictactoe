@@ -1,4 +1,5 @@
 Implement
     Check online/offline
+    Implement authorization
     push games
     push messages to games
