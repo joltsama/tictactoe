@@ -52,18 +52,23 @@ class Login extends Component {
       console.log("signup");
       var email = this.state.email;
       var password = this.state.pass;
-      firebase.auth().createUserWithEmailAndPassword(email, password).catch(function (error) {
-        // Handle Errors here.
+      firebase.auth().createUserWithEmailAndPassword(email, password).then(() => {
+        console.log('signed in');
+        firebase.auth().currentUser.sendEmailVerification()
+          .then(function () {
+            // Email Verification sent!
+            alert('Email Verification Sent!');
+          });
+      }).catch(function (error) {
         var errorCode = error.code;
         var errorMessage = error.message;
-        // [START_EXCLUDE]
-        // this.setState({ authError: errorMessage });
-        if (errorCode === 'auth/weak-password') {
-          alert('The password is too weak.');
-        } else {
-          alert(errorMessage);
-        }
-        console.log(error);
+        this.setState({ authError: errorMessage });
+        // if (errorCode === 'auth/weak-password') {
+        //   alert('The password is too weak.');
+        // } else {
+        //   alert(errorMessage);
+        // }
+        // console.log(error);
       });
     }
   }
@@ -71,7 +76,25 @@ class Login extends Component {
   login() {
     const isValid = this.validate();
     if (isValid) {
-      console.log("login");
+      if (firebase.auth().currentUser) {
+        firebase.auth().signOut();
+      } else {
+        var email = this.state.email;
+        var password = this.state.pass;
+        firebase.auth().signInWithEmailAndPassword(email, password).then(()=>{
+          console.log('logged in');
+          //go to game page
+        }).catch(function (error) {
+          if (error.code === 'auth/wrong-password') {
+            alert('Wrong password.');
+          } else {
+            alert(error.message);
+          }
+          console.log(error);
+          // document.getElementById('quickstart-sign-in').disabled = false;
+        });
+      }
+      // document.getElementById('quickstart-sign-in').disabled = true;
     }
   }
 
@@ -108,7 +131,7 @@ class Login extends Component {
                         <input class="input"
                           name="email"
                           value={this.state.email}
-                          onChange={(e)=>{this.handleChange(e);}}
+                          onChange={(e) => { this.handleChange(e); }}
                           placeholder="email"
                         ></input>
                         <div class="help">{this.state.emailError}</div>
@@ -160,7 +183,7 @@ class Login extends Component {
                         <input class="input"
                           name="user"
                           value={this.state.user}
-                          onChange={(e)=>{this.handleChange(e);}}
+                          onChange={(e) => { this.handleChange(e); }}
                           placeholder="username"
                         ></input>
                         <div class="help">{this.state.userError}</div>
@@ -170,7 +193,7 @@ class Login extends Component {
                         <input class="input"
                           name="email"
                           value={this.state.email}
-                          onChange={(e)=>{this.handleChange(e);}}
+                          onChange={(e) => { this.handleChange(e); }}
                           placeholder="email"
                         ></input>
                         <div class="help">{this.state.emailError}</div>
@@ -180,7 +203,7 @@ class Login extends Component {
                         <input class="input" type="password"
                           div="pass"
                           name="pass"
-                          onChange={(e)=>{this.handleChange(e);}}
+                          onChange={(e) => { this.handleChange(e); }}
                           placeholder="password"
                         ></input>
                         <div class="help">{this.state.passError}</div>
