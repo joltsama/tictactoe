@@ -1,10 +1,26 @@
 import React from 'react'
-import firebase from 'firebase'
-import fire from './fire'
 import { Component } from 'react'
-import { Content } from 'bulma'
-import Navbar from './navbar'
+import firebase from 'firebase'
+import 'bulma'
 
+function Navbar(props) {
+  return (
+    <header class="navbar">
+      <div class="container">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="tictactoe-jolt.web.app">
+            <div class="title">tictactoe</div>
+          </a>
+        </div>
+        <div class='navbar-menu'>
+          <div class="navbar-end">
+            <a class="navbar-item" href='/about'>About</a>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
 class Login extends Component {
   constructor(props) {
     super(props);
@@ -16,8 +32,21 @@ class Login extends Component {
       passError: '',
       emailError: '',
       authError: '',
-      login: 0
+      login: 1
     }
+  }
+
+  componentDidMount() {
+    if (this.props.location.logout === 1) {
+      firebase.auth().signOut().then(() => {
+        this.setState({ login: 1 });
+      });
+    }
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        this.props.history.push('/game');
+      }
+    });
   }
 
   validate() {
@@ -56,17 +85,15 @@ class Login extends Component {
         console.log('signed in');
         firebase.auth().currentUser.sendEmailVerification()
           .then(function () {
-            // Email Verification sent!
             alert('Email Verification Sent!');
           });
       }).catch(function (error) {
-        // var errorCode = error.code;
-        // var errorMessage = error.message;
+
         this.setState({ authError: error.message });
-        // if (errorCode === 'auth/weak-password') {
+        // if (error.code === 'auth/weak-password') {
         //   alert('The password is too weak.');
         // } else {
-        //   alert(errorMessage);
+        //   alert(error,message);
         // }
         // console.log(error);
       });
@@ -83,7 +110,10 @@ class Login extends Component {
         var password = this.state.pass;
         firebase.auth().signInWithEmailAndPassword(email, password).then(() => {
           console.log('logged in');
-          //go to game page
+          // let history = withRouter();
+          // history.push('/game');
+          this.props.history.push('/game');
+
         }).catch(function (error) {
           if (error.code === 'auth/wrong-password') {
             alert('Wrong password.');
@@ -107,52 +137,52 @@ class Login extends Component {
 
   render() {
 
-    const loginclass = "hero-body" + (this.state.login === 1 ? "" : " is-hidden");
-    const signupClass = "hero-body" + (this.state.login === 0 ? "" : " is-hidden");
+    const loginclassName = "hero-body" + (this.state.login === 1 ? "" : " is-hidden");
+    const signupclassName = "hero-body" + (this.state.login === 0 ? "" : " is-hidden");
 
     return (
-      <section class="hero is-large is-light">
-        <div class="hero-head">
+      <section className="hero is-fullheight is-primary">
+        <div className="hero-head">
           <Navbar />
         </div>
-        <div class={loginclass}>
-          <div class="container">
-            <div class="columns">
+        <div className={loginclassName}>
+          <div className="container">
+            <div className="columns">
 
-              <div class="column is-one-third">
-                <div class="card">
+              <div className="column is-one-third">
+                <div className="card">
 
-                  <div class="card-content">
-                    <p class="title">Login</p>
+                  <div className="card-content">
+                    <p className="title" style={{color:"black"}}>Login</p>
                     <br />
-                    <form class="form">
-                      <div class="field">
-                        <label class="label">Email</label>
-                        <input class="input"
+                    <form className="form">
+                      <div className="field">
+                        <label className="label">Email</label>
+                        <input className="input"
                           name="email"
                           value={this.state.email}
                           onChange={(e) => { this.handleChange(e); }}
                           placeholder="email"
                         ></input>
-                        <div class="help">{this.state.emailError}</div>
+                        <div className="help">{this.state.emailError}</div>
                       </div>
-                      <div class="field">
-                        <label class="label">Password</label>
+                      <div className="field">
+                        <label className="label">Password</label>
                         <input
-                          class="input"
+                          className="input"
                           type="password"
                           name="pass"
                           onChange={(e) => { this.handleChange(e); }}
                           placeholder="password"
                         ></input>
                       </div>
-                      <div class="buttons">
+                      <div className="buttons">
                         <button
-                          class="button is-primary"
+                          className="button is-primary"
                           onClick={(e) => { e.preventDefault(); this.login() }}
                         >Login</button>
                         <button
-                          class="button"
+                          className="button"
                           onClick={(e) => { e.preventDefault(); this.setState({ login: 0 }) }}
                         >Signup</button>
                       </div>
@@ -166,51 +196,51 @@ class Login extends Component {
           </div>
         </div>
 
-        <div class={signupClass}>
-          <div class="container">
-            <div class="columns">
+        <div className={signupclassName}>
+          <div className="container">
+            <div className="columns">
 
-              <div class="column is-one-third">
-                <div class="card">
+              <div className="column is-one-third">
+                <div className="card">
 
-                  <div class="card-content">
-                    <p class="title is-dark">Signup</p>
+                  <div className="card-content">
+                    <p className="title" style={{color:"black"}}>Signup</p>
                     <br />
-                    <div class='help'>{this.state.authError}</div>
-                    <form class="form">
-                      <div class="field">
-                        <label class="label">Username</label>
-                        <input class="input"
+                    <div className='help'>{this.state.authError}</div>
+                    <form className="form">
+                      <div className="field">
+                        <label className="label">Username</label>
+                        <input className="input"
                           name="user"
                           value={this.state.user}
                           onChange={(e) => { this.handleChange(e); }}
                           placeholder="username"
                         ></input>
-                        <div class="help">{this.state.userError}</div>
+                        <div className="help">{this.state.userError}</div>
                       </div>
-                      <div class="field">
-                        <label class="label">Email</label>
-                        <input class="input"
+                      <div className="field">
+                        <label className="label">Email</label>
+                        <input className="input"
                           name="email"
                           value={this.state.email}
                           onChange={(e) => { this.handleChange(e); }}
                           placeholder="email"
                         ></input>
-                        <div class="help">{this.state.emailError}</div>
+                        <div className="help">{this.state.emailError}</div>
                       </div>
-                      <div class="field">
-                        <label class="label">Password</label>
-                        <input class="input" type="password"
+                      <div className="field">
+                        <label className="label">Password</label>
+                        <input className="input" type="password"
                           div="pass"
                           name="pass"
                           onChange={(e) => { this.handleChange(e); }}
                           placeholder="password"
                         ></input>
-                        <div class="help">{this.state.passError}</div>
+                        <div className="help">{this.state.passError}</div>
                       </div>
-                      <div class="buttons">
-                        <button class="button is-primary" onClick={(e) => { e.preventDefault(); this.signup() }}>Signup</button>
-                        <button class="button" onClick={(e) => { e.preventDefault(); this.setState({ login: 1 }) }}>Login</button>
+                      <div className="buttons">
+                        <button className="button is-primary" onClick={(e) => { e.preventDefault(); this.signup() }}>Signup</button>
+                        <button className="button" onClick={(e) => { e.preventDefault(); this.setState({ login: 1 }) }}>Login</button>
                       </div>
                     </form>
                   </div>

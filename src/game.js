@@ -1,6 +1,35 @@
 import React from 'react';
 import fire from './fire';
-import { Card } from 'bulma';
+import 'bulma';
+import './index.css'
+import './app.scss'
+import firebase from 'firebase';
+import { Redirect, Link } from 'react-router-dom';
+
+function Navbar(props) {
+  return (
+    <header class="navbar">
+      <div class="container">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="tictactoe-jolt.web.app">
+            <div class="title">tictactoe</div>
+          </a>
+        </div>
+        <div class='navbar-menu'>
+          <div class="navbar-end">
+            <a class="navbar-item" href='/profile'>Profile</a>
+            <Link class="navbar-item" to={{
+              pathname: '/',
+              logout: 1
+            }}>Logout</Link>
+            {/* <a class="navbar-item" onClick={() => props.onClick()} href='/login'>LOGOUT</a> */}
+            {/* <button class="button is-primary" onClick={() => props.onClick()}>Logout</button> */}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
 
 function Square(props) {
   return (
@@ -34,28 +63,76 @@ class Board extends React.Component {
   }
 
   render() {
+    // <div>
+    //   <div className="board-row">
+    //     {this.renderSquare(0)}
+    //     {this.renderSquare(1)}
+    //     {this.renderSquare(2)}
+    //   </div>
+    //   <div className="board-row">
+    //     {this.renderSquare(3)}
+    //     {this.renderSquare(4)}
+    //     {this.renderSquare(5)}
+    //   </div>
+    //   <div className="board-row">
+    //     {this.renderSquare(6)}
+    //     {this.renderSquare(7)}
+    //     {this.renderSquare(8)}
+    //   </div>
+    // </div>
     return (
-      <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
-      </div>
+      <table>
+        <tr>
+          <td>{this.renderSquare(0)}</td>
+          <td>{this.renderSquare(1)}</td>
+          <td>{this.renderSquare(2)}</td>
+        </tr>
+        <tr>
+          <td>{this.renderSquare(4)}</td>
+          <td>{this.renderSquare(5)}</td>
+          <td>{this.renderSquare(3)}</td>
+        </tr>
+        <tr>
+          <td>{this.renderSquare(6)}</td>
+          <td>{this.renderSquare(7)}</td>
+          <td>{this.renderSquare(8)}</td>
+        </tr>
+      </table>
     );
   }
 }
 
+function Boardtable() {
+  return (
+    <div class="gameboard">
+      <div class="team--o">
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <span class="message--o"></span>
+      </div>
+
+      <div class="team--x">
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <input class="tttsquare" type="checkbox" />
+        <span class="message--x"></span>
+      </div>
+    </div>
+  );
+}
 class Game extends React.Component {
 
   constructor(props) {
@@ -67,8 +144,36 @@ class Game extends React.Component {
       }],
       auth: 0,
       step: 0,
-      xNext: true
+      xNext: true,
+      matchHeader: '',
+      matchFooter: '',
+      player1: '',
+      player2: '',
+      gameState: 0
+    };
+    Navbar = Navbar.bind(this);
+  }
+
+  findOpponent() {
+    if(this.state.startGame===0){
+      ;
+    }else{
+      this.setState({matchFooter:"You are already in a match"});
+      setTimeout(function(){
+        this.setState({matchFooter:""});
+      }, 3000);
     }
+  }
+
+  startGame() {
+    ;
+  }
+
+  logout() {
+    firebase.auth().signOut().then(function () {
+      console.log('logged out');
+      return <Redirect to='/login' />;
+    });
   }
 
   handleClick(i) {
@@ -94,9 +199,8 @@ class Game extends React.Component {
       xNext: (move % 2) === 0
     });
   }
-  
+
   componentWillMount() {
-    /* Create reference to messages in Firebase Database */
     let messagesRef = fire.database().ref('messages').orderByKey().limitToLast(100);
     messagesRef.on('child_added', snapshot => {
       /* Update React state when message is added at Firebase Database */
@@ -106,8 +210,7 @@ class Game extends React.Component {
   }
 
   addMessage(e) {
-    e.preventDefault(); // <- prevent form submit from reloading the page
-    /* Send the message to Firebase */
+    e.preventDefault();
     fire.database().ref('messages').push(this.inputEl.value);
     this.inputEl.value = ''; // <- clear the input
   }
@@ -137,16 +240,12 @@ class Game extends React.Component {
     }
 
     this.state.messages.map(message => <li key={message.id}>{message.text}</li>);
-    var visibility = '';
 
-    if (this.auth === 1) {
-      visibility = "hero is-hidden";
-    } else {
-      visibility = "hero";
-    }
-
-    const game =
-      <section class={visibility}>
+    return (
+      <section class="hero is-fullheight is-primary">
+        <div class="hero-head">
+          <Navbar onClick={() => this.logout()} />
+        </div>
         <div class="hero-body">
           <div class="container">
 
@@ -155,7 +254,12 @@ class Game extends React.Component {
             <div class="columns">
 
               <div class="column">
-                <div className="game-info">
+                {/* <button class="button">Find an opponent</button> */}
+                <button 
+                  class={"button " + (this.state.gameState===1? "is-hidden": "")}
+                  onClick={()=>this.findOpponent()}
+                >Find an opponent</button>
+                <div className={this.state.gameState===1? "": "is-hidden"}>
                   <div>{status}</div>
                   <ol>{moves}</ol>
                 </div>
@@ -163,11 +267,24 @@ class Game extends React.Component {
 
               <div class="column">
                 <div class="card">
+
+                  <div class="has-text-centered">
+                    {this.state.player1} <span class="tag">VS</span> {this.state.player2}
+                  </div>
+
                   <div class="card-content">
                     <div className="game">
                       <div className="game-board">
                         <Board squares={current.squares} onClick={(i) => this.handleClick(i)} />
+                        {/* <Boardtable /> */}
                       </div>
+                    </div>
+
+                  </div>
+
+                  <div class="card-footer">
+                    <div class="card-footer-item">
+                      {this.state.matchFooter}
                     </div>
                   </div>
                 </div>
@@ -200,9 +317,6 @@ class Game extends React.Component {
           </div>
         </div >
       </section >
-
-    return (
-      <game />
     );
   }
 }

@@ -24,8 +24,7 @@ class Nav extends Component {
               <label class="label">
                 {this.state.connectionState}
               </label>
-    
-              <a class="navbar-item" href='/about'>About</a>
+              <a class="navbar-item" href='/game'>About</a>
           </div>
         </div>
       </header>
