@@ -1,22 +1,21 @@
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import { Route, Redirect, BrowserRouter as Router, Switch } from 'react-router-dom'
-// import fire from './fire';
 import firebase from 'firebase';
-// import Nav from './navbar';
-import Login from './login';
-import Game from './game';
-import Notfound from './notfound'
-import './app.scss'
+import Login from './components/login';
+import Game from './components/game';
+import Profile from './components/profile';
+import Notfound from './components/notfound'
+import './components/app.scss'
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
   <Route {...rest} render={(props) => (
-    firebase.auth().currentUser
+    firebase.auth().currentUser !== null
       ? <Component {...props} />
       : <Redirect to={{
-          pathname: '/',
-          state: { from: props.location }
-        }} />
+        pathname: '/login',
+        state: { from: props.location }
+      }} />
   )} />
 )
 
@@ -25,9 +24,10 @@ class App extends Component {
     return (
       <Router>
         <Switch>
-          <Route exact path="/" component={Login}></Route>
-          <PrivateRoute exact path="/game" component={Game}></PrivateRoute>
-          <Route component={Notfound} />  
+          <Route exact path="/login" component={Login}></Route>
+          <PrivateRoute exact path="/" component={Game}></PrivateRoute>
+          <PrivateRoute exact path="/profile" component={Profile}></PrivateRoute>
+          <Route component={Notfound} />
         </Switch>
       </Router>
     )

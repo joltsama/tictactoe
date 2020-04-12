@@ -12,19 +12,19 @@ class Nav extends Component {
 
   render() {
     return (
-      <header class="navbar">
-        <div class="container">
-          <div class="navbar-brand">
-            <a class="navbar-item" href="tictactoe-jolt.web.app">
+      <header className="navbar">
+        <div className="container">
+          <div className="navbar-brand">
+            <a className="navbar-item" href="tictactoe-jolt.web.app">
               <img src="./logo192.png" alt="logo"></img>
             </a>
           </div>
 
-          <div class="navbar-end">
-              <label class="label">
+          <div className="navbar-end">
+              <label className="label">
                 {this.state.connectionState}
               </label>
-              <a class="navbar-item" href='/game'>About</a>
+              <a className="navbar-item" href='/game'>About</a>
           </div>
         </div>
       </header>

@@ -1,20 +1,21 @@
 import React from 'react'
 import { Component } from 'react'
 import firebase from 'firebase'
+import { Link } from 'react-router-dom';
 import 'bulma'
 
 function Navbar(props) {
   return (
-    <header class="navbar">
-      <div class="container">
-        <div class="navbar-brand">
-          <a class="navbar-item" href="tictactoe-jolt.web.app">
-            <div class="title">tictactoe</div>
-          </a>
+    <header className="navbar">
+      <div className="container">
+        <div className="navbar-brand">
+          <div className="title">tictactoe</div>
         </div>
-        <div class='navbar-menu'>
-          <div class="navbar-end">
-            <a class="navbar-item" href='/about'>About</a>
+        <div className='navbar-menu'>
+          <div className="navbar-end">
+            <Link className="navbar-item" to={{
+              pathname: '/about',
+            }}>About</Link>
           </div>
         </div>
       </div>
@@ -31,8 +32,8 @@ class Login extends Component {
       userError: '',
       passError: '',
       emailError: '',
-      authError: '',
-      login: 1
+      login: 1,
+      notification: ''
     }
   }
 
@@ -43,8 +44,8 @@ class Login extends Component {
       });
     }
     firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        this.props.history.push('/game');
+      if (user && firebase.auth().currentUser.emailVerified) {
+        this.props.history.push('/');
       }
     });
   }
@@ -75,56 +76,75 @@ class Login extends Component {
     return valid;
   }
 
+  setNotification(message, hide = true) {
+    if (hide === true) {
+      this.setState({
+        notification: <div className="notification">{message}</div>
+      });
+      setTimeout(() => this.setState({ notification: "" }), 5000);
+    }
+    else {
+      this.setState({
+        notification: <div className="notification">{message}</div>
+      });
+    }
+  }
+
   signup() {
     const isValid = this.validate();
     if (isValid) {
       console.log("signup");
       var email = this.state.email;
       var password = this.state.pass;
-      firebase.auth().createUserWithEmailAndPassword(email, password).then(() => {
-        console.log('signed in');
-        firebase.auth().currentUser.sendEmailVerification()
-          .then(function () {
-            alert('Email Verification Sent!');
+      firebase.auth().createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          firebase.database().ref('/users/' + firebase.auth().currentUser.uid).set({
+            username: this.state.user,
+            email: this.state.email,
+            wins: 0
           });
-      }).catch(function (error) {
-
-        this.setState({ authError: error.message });
-        // if (error.code === 'auth/weak-password') {
-        //   alert('The password is too weak.');
-        // } else {
-        //   alert(error,message);
-        // }
-        // console.log(error);
-      });
+          firebase.database().ref('/idtouid/').set({
+            username: firebase.auth().currentUser.uid
+          });
+          console.log('registered');
+        })
+        .then(() => {
+          firebase.auth().currentUser.sendEmailVerification()
+            .then(() => {
+              this.setState({ login: 1 });
+              this.setNotification('Please verifiy your email');
+            });
+        })
+        .catch((error) => {
+          this.setNotification(error.message);
+        });
     }
   }
 
   login() {
     const isValid = this.validate();
     if (isValid) {
-      if (firebase.auth().currentUser) {
-        firebase.auth().signOut();
+      let auth = firebase.auth();
+      if (auth.currentUser) {
+        auth.signOut();
       } else {
         var email = this.state.email;
         var password = this.state.pass;
-        firebase.auth().signInWithEmailAndPassword(email, password).then(() => {
-          console.log('logged in');
-          // let history = withRouter();
-          // history.push('/game');
-          this.props.history.push('/game');
-
-        }).catch(function (error) {
-          if (error.code === 'auth/wrong-password') {
-            alert('Wrong password.');
+        auth.signInWithEmailAndPassword(email, password).then(() => {
+          if (auth.currentUser.emailVerified) {
+            console.log('logged in');
+            this.props.history.push('/');
           } else {
-            alert(error.message);
+            this.setNotification('Please verifiy your email address.')
           }
-          console.log(error);
-          // document.getElementById('quickstart-sign-in').disabled = false;
+        }).catch((error) => {
+          if (error.code === 'auth/wrong-password') {
+            this.setNotification('Wrong password.');
+          } else {
+            this.setNotification(error.message, false);
+          }
         });
       }
-      // document.getElementById('quickstart-sign-in').disabled = true;
     }
   }
 
@@ -133,6 +153,10 @@ class Login extends Component {
     this.setState({
       [e.target.name]: e.target.value
     })
+    if (e.target.name === 'email') {
+      this.setState({ user: e.target.value.split('@')[0] });
+
+    }
   }
 
   render() {
@@ -153,7 +177,7 @@ class Login extends Component {
                 <div className="card">
 
                   <div className="card-content">
-                    <p className="title" style={{color:"black"}}>Login</p>
+                    <p className="title" style={{ color: "black" }}>Login</p>
                     <br />
                     <form className="form">
                       <div className="field">
@@ -186,6 +210,7 @@ class Login extends Component {
                           onClick={(e) => { e.preventDefault(); this.setState({ login: 0 }) }}
                         >Signup</button>
                       </div>
+                      {this.state.notification}
                     </form>
                   </div>
 
@@ -204,17 +229,16 @@ class Login extends Component {
                 <div className="card">
 
                   <div className="card-content">
-                    <p className="title" style={{color:"black"}}>Signup</p>
+                    <p className="title" style={{ color: "black" }}>Signup</p>
                     <br />
-                    <div className='help'>{this.state.authError}</div>
                     <form className="form">
                       <div className="field">
                         <label className="label">Username</label>
                         <input className="input"
                           name="user"
                           value={this.state.user}
-                          onChange={(e) => { this.handleChange(e); }}
                           placeholder="username"
+                          readOnly
                         ></input>
                         <div className="help">{this.state.userError}</div>
                       </div>
@@ -242,6 +266,7 @@ class Login extends Component {
                         <button className="button is-primary" onClick={(e) => { e.preventDefault(); this.signup() }}>Signup</button>
                         <button className="button" onClick={(e) => { e.preventDefault(); this.setState({ login: 1 }) }}>Login</button>
                       </div>
+                      {this.state.notification}
                     </form>
                   </div>
 

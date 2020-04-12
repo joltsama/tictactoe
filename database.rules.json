@@ -2,9 +2,17 @@
   "rules": {
     "users": {
       "$uid": {
-        ".read": "auth != null && auth.uid == $uid"
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
       }
     },
-    ".write": false
+    "idtouid": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "session":{
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
   }
 }
