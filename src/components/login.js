@@ -103,7 +103,7 @@ class Login extends Component {
             email: this.state.email,
             wins: 0
           });
-          firebase.database().ref('/idtouid/').set({
+          firebase.database().ref('/idtouid/').update({
             username: firebase.auth().currentUser.uid
           });
           console.log('registered');
