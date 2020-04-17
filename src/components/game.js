@@ -35,13 +35,14 @@ function Square(props) {
   );
 }
 
-function extractSquares(moves, startX){
-  let squares=Array(9).fill(null);
-  for(var i=1; i<moves.length; i++){
-    squares[i]=((i+startX)%2===0?'X':'O');
+function extractSquares(moves, startX) {
+  let squares = Array(9).fill(null);
+  for (var i = 1; i < moves.length; i++) {
+    squares[parseInt(moves[i])] = ((i) % 2 === 1 ? 'X' : 'O');
   }
   return squares;
 }
+
 function calculateWinner(squares) {
   const lines = [
     [0, 1, 2],
@@ -76,9 +77,9 @@ class Board extends React.Component {
           <td>{this.renderSquare(2)}</td>
         </tr>
         <tr>
+          <td>{this.renderSquare(3)}</td>
           <td>{this.renderSquare(4)}</td>
           <td>{this.renderSquare(5)}</td>
-          <td>{this.renderSquare(3)}</td>
         </tr>
         <tr>
           <td>{this.renderSquare(6)}</td>
@@ -96,166 +97,256 @@ class Game extends React.Component {
     super(props);
     this.state = {
       messages: [],
-      moves: '',
-      step: 0,
-      xNext: true,
-      matchFooter: '',
+      moves: "0",
+      matchFooter: <p>Invite a friend to play.</p>,
       player1: '',
       player2: '',
       gameState: 0,
       invFrom: '',
-      invited: '',
       gamedir: '',
-      startX: 1
+      startX: 0,
+      checkedPrev: 0,
+      wins: 0
     };
+    this.cancelInvitation = this.cancelInvitation.bind(this);
   }
 
-  async checkGameStatus() {
+  // componentWillMount() {
+  // let messagesRef = fire.database().ref('messages').orderByKey().limitToLast(100);
+  // messagesRef.on('child_added', snapshot => {
+  //   /* Update React state when message is added at Firebase Database */
+  //   let message = { text: snapshot.val(), id: snapshot.key };
+  //   this.setState({ messages: [message].concat(this.state.messages) });
+  // });
+  // }
 
-    await firebase.database().ref('/users/' + fire.auth().currentUser.uid).once('value')
-      .then((snapshot) => {
-        this.setState({ player1: snapshot.val().username });
-      })
-      .catch((error) => {
-        alert(error.message);
-      });
+  async componentDidMount() {
+    await this.setPlayerName();
+    this.checkRunningGame();
+    this.checkInvitation();
 
-    firebase.database().ref('/session/' + this.state.player1 + '/game/').on('value', (snapshot) => {
-      if (snapshot.val().player2 !== null && snapshot.val().player2 !== 'none') {
-        this.setState({
-          matchFooter: <p>{'Playing against ' + snapshot.val().player2 + ', You play Xs'}</p>,
-          gamedir: '/session/' + this.state.player1 + '/game/',
-          player2: snapshot.val().player2,
-          gameState: 1,
-          moves: snapshot.val().moves,
-          startX: 1
-        });
-        setTimeout(() => { this.setState({ matchFooter: '' }); }, 5000);
-      } else {
-        firebase.database().ref('/session/' + this.state.player1 + '/invFrom').on('value', (snapshot) => {
-          if (snapshot.val() !== null && snapshot.val() !== 'none') {
-            const invitationButton =
-              <div>
-                <p>Invitation from {snapshot.val()}</p>
-                <div className="buttons">
-                  <button className="button is-dark" onClick={() => this.acceptInvitation(snapshot.val())}>Accept Invitation</button>
-                  <button className="button" onClick={() => this.cancelInvitation()}>Cancel</button>
-                </div>
-              </div>;
-            this.setState({
-              matchFooter: invitationButton,
-              xNext: false,
-              startX: 0
-            });
-          }
-        });
-      }
+  }
+
+  async setPlayerName() {  // working fine
+    let promise = new Promise((res, rej) => {
+      firebase.database().ref('/users/' + fire.auth().currentUser.uid).once('value')
+        .then((result) => {
+          this.setState({ player1: result.val().username, wins:result.val().wins});
+          console.log('username set', result.val().username);
+        })
+        .then(() => { res(1) })
+        .catch((e) => { rej(e) });
     });
+    return promise;
   }
 
-  componentDidMount() {
-    this.checkGameStatus();
-    // game
-    // firebase.database().ref(/).on('value', snapshot => {
-    //   if (snapshot.val() !== null || snapshot.val() !== "none") {
-    //     this.setState({
-    //       matchFooter: <div className="notification">{<p>{this.state.player2} has accepted your invitation</p>}</div>
-    //     });
-    //     setTimeout(() => this.setState({ matchFooter: "" }), 5000);
-    //   }
-    // });
+
+  // Invitation ---------------------------
+
+  inviteFriend() {  // working fine
+    let database = firebase.database();
+    database.ref('/session/' + this.state.player2).update({
+      invFrom: this.state.player1
+    })
+      .then(() => {
+        this.setState({ matchFooter: "Invitation sent to " + this.state.player2 });
+        setTimeout(() => {
+          this.setState({ matchFooter: "" });
+        }, 3000);
+        console.log('Invited', this.state.player2);
+        // this.checkRunningGame();
+      })
+      .catch(e => console.log(e));
   }
 
-  acceptInvitation(player2) {
+  checkInvitation() {  // working fine
+    console.log('check invites');
+    firebase.database().ref('/session/' + this.state.player1 + '/invFrom').on('value', (snapshot) => {
+      if (snapshot.val() !== null && snapshot.val() !== 'none') {
+        this.setInvitation(snapshot.val());
+      }
+    })
+  }
+
+  setInvitation(username) {  // working fine
+    const invitationButton =
+      <div>
+        <p>Invitation from {username}</p>
+        <div className="buttons">
+          <button className="button is-dark" onClick={() => this.acceptInvitation(username)}>Accept Invitation</button>
+          <button className="button" onClick={this.cancelInvitation}>Cancel</button>
+        </div>
+      </div>;
+    const res = {
+      matchFooter: invitationButton
+    };
+    if (this.state.gameState === 0) {
+      this.setState(res);
+    }
+  }
+
+  acceptInvitation(player2) {  // working fine
     this.setState({
       matchFooter: 'You play Os',
       player2: player2,
       gameState: 1,
-      gamedir: 'session/' + player2 + '/game/'
-    });
-    firebase.database().ref('/session/' + player2 + '/').update({
-      game: {
-        moves: [-1],
-        player2: this.state.player1
-      },
-      playing: 1
-    });
-    firebase.database().ref('/session/' + this.state.player1 + '/').update({
-      playing: 1
+      gamedir: '/session/' + player2 + '/game/'
+    }, () => {
+      firebase.database().ref('/session/' + player2 + '/').update({
+        game: {
+          moves: "0",
+          player2: this.state.player1,
+          startX: 1,
+          gamedir: this.state.gamedir,
+        },
+        playing: 1
+      })
+        .then(() => {
+          firebase.database().ref('/session/' + this.state.player1 + '/').update({
+            game: {
+              moves: "0",
+              player2: player2,
+              startX: 0,
+              gamedir: this.state.gamedir,
+            },
+            invFrom: "none",
+            playing: 1
+          });
+        })
+        .then(() => {
+          this.checkRunningGame();
+        })
     });
   }
 
-  cancelInvitation() {
+  cancelInvitation() { /// working fine
     this.setState({ matchFooter: '' });
     firebase.database().ref('/session/' + this.state.player1 + '/invFrom').set("none").then(() => console.log('Invitation cleared'));
   }
 
-  componentWillMount() {
-    // let messagesRef = fire.database().ref('messages').orderByKey().limitToLast(100);
-    // messagesRef.on('child_added', snapshot => {
-    //   /* Update React state when message is added at Firebase Database */
-    //   let message = { text: snapshot.val(), id: snapshot.key };
-    //   this.setState({ messages: [message].concat(this.state.messages) });
-    // })
-    ;
-  }
 
-  inviteFriend() {
-    // e.preventDefault()
-    let database = firebase.database();
-    database.ref('session/' + this.state.player2).update({
-      invFrom: this.state.player1
+  // Game Status ---------------------------------------
+  checkRunningGame() {
+    console.log('check running game with username', this.state.player1);
+    let listener = firebase.database().ref('/session/' + this.state.player1 + '/game/')
+    listener.on('value', (snapshot) => {
+      if (snapshot.val() !== null && snapshot.val().player2 !== null && snapshot.val().player2 !== 'none') {
+        const { gamedir, moves, startX, player2 } = snapshot.val();
+        let turn = '';
+        if (snapshot.val().startX === 1 && snapshot.val().moves.length % 2 === 1) turn = 'Your turn';
+        else if (snapshot.val().startX === 0 && snapshot.val().moves.length % 2 === 0) turn = 'Your turn';
+
+        const gameState = {
+          gamedir: gamedir,
+          player2: player2,
+          moves: moves,
+          startX: startX,
+          gameState: 1,
+        };
+        listener.off();
+        this.startGame(gameState);
+      }
     });
-    console.log('Invited player2');
 
-    this.setState({ matchFooter: "Invitation sent to " + this.state.player2 });
-    setTimeout(() => {
-      this.setState({ matchFooter: "" });
-    }, 3000);
   }
 
-  startGame() {
-    ;
-  }
+  startGame(gameState) {
+    this.setState(gameState);
+    console.log('resume game with username', this.state.player1);
 
-  logout() {
-    firebase.auth().signOut().then(function () {
-      console.log('logged out');
-      return <Redirect to='/login' />;
-    });
-  }
+    firebase.database().ref(this.state.gamedir).on('value', (snapshot) => {
+      if (snapshot.val() !== null && snapshot.val().player2 !== null && snapshot.val().player2 !== 'none') {
+        const moves = snapshot.val().moves;
+        const squares = extractSquares(moves, this.state.startX);
+        const win = calculateWinner(squares);
+        if (moves.charAt(moves.length - 1) === '-') {
+          this.setState({
+            moves: moves,
+            matchFooter: <p>Winner !! {win}  <button className="button" onClick={() => this.resetGame(this.state.player2)}>Reset</button></p>
+          });
+          return;
+        }
+        if (win !== null) {
+          firebase.database().ref(this.state.gamedir).update({
+            moves: moves + '-'
+          })
+          .then(()=>{
+            firebase.database().ref(/users/+firebase.auth().currentUser.uid)
+            .update({
+              wins: this.state.wins + 1
+            })
+          })
+          .catch(e => console.log(e));
+          return;
+        }
 
-  handleClick(i) {
-    this.setState({
-      moves: this.state.moves+String(i)
+        let turn = '';
+        if (this.state.startX === 1 && snapshot.val().moves.length % 2 === 1) turn = 'Your turn';
+        if (this.state.startX === 0 && snapshot.val().moves.length % 2 === 0) turn = 'Your turn';
+        const currGameState = {
+          matchFooter: <p>{turn}</p>,
+          moves: moves
+        };
+
+        console.log('currGameState', currGameState);
+        this.setState(currGameState);
+      }
     })
-    firebase.database().ref(this.state.gamedir).update({
-      moves: this.state.moves
-    });
-    // const history = this.state.history.slice(0, this.state.step + 1);
-    // const current = history[history.length - 1];
-    // const squares = current.squares.slice();
-    let squares=extractSquares(this.state.moves, this.state.startX);
-    if (calculateWinner(squares) || squares[i]) {
-      this.setState({ matchFooter: <p>Won!!</p> });
-      // return;
-    }
-  //   squares[i] = this.state.xNext ? 'X' : 'O';
-  //   this.setState({
-  //     history: history.concat([{
-  //       squares: squares
-  //     }]),
-  //     step: history.length,
-  //     xNext: !this.state.xNext
-  //   });
   }
 
-  jumpTo(move) {
+
+  // Gameplay ----------------------------------------
+  handleClick(i) {
+    const moves = this.state.moves;
+
+    if (this.state.startX === 1 && moves.length % 2 === 0)
+      return;
+    if (this.state.startX === 0 && moves.length % 2 === 1)
+      return;
+
+    firebase.database().ref(this.state.gamedir).update({
+      moves: this.state.moves + String(i)
+    }).then(() => {
+      console.log('value updated', this.state.gamedir);
+      console.log(moves);
+    }).catch(e => console.log(e));
+  }
+
+  resetGame(player2) {
     this.setState({
-      step: move,
-      xNext: (move % 2) === 0
+      matchFooter: '',
+      player2: "none",
+      gameState: 0,
+      gamedir: "none",
+      moves: "0"
+    }, () => {
+      firebase.database().ref('/session/' + player2 + '/').update({
+        game: {
+          moves: "0",
+          player2: "none",
+          startX: 0,
+          gamedir: "none"
+        },
+        playing: 0
+      })
+        .then(() => {
+          firebase.database().ref('/session/' + this.state.player1 + '/').update({
+            game: {
+              moves: "0",
+              player2: "none",
+              startX: 0,
+              gamedir: "none"
+            },
+            invFrom: "none",
+            playing: 0
+          });
+        })
+        .then(() => {
+          this.checkRunningGame();
+        })
     });
   }
+
 
   addMessage(e) {
     e.preventDefault();
@@ -263,21 +354,20 @@ class Game extends React.Component {
     this.inputEl.value = ''; // <- clear the input
   }
 
+
+  // Misc ---------------------------------
+  logout() {
+    firebase.auth().signOut().then(function () {
+      console.log('logged out');
+      return <Redirect to='/login' />;
+    });
+  }
+
   render() {
 
-    
-    let squares=extractSquares(this.state.moves, this.state.startX);
+
+    let squares = extractSquares(this.state.moves, this.state.startX);
     const winner = calculateWinner(squares);
-    // const moves = history.map((step, move) => {
-    //   const desc = move ?
-    //     'Go to move #' + move :
-    //     'Go to game start';
-    //   return (
-    //     <li key={move}>
-    //       <button onClick={() => this.jumpTo(move)}>{desc}</button>
-    //     </li>
-    //   );
-    // });
 
     let status;
     if (winner) {

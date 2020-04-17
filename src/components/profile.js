@@ -14,7 +14,7 @@ function Navbar(props) {
         <div className='navbar-menu'>
           <div className="navbar-end">
             <Link className="navbar-item" to={{
-              pathname: '/game',
+              pathname: '/',
             }}>Game</Link>
           </div>
         </div>
