@@ -6,7 +6,8 @@ import Login from './components/login';
 import Game from './components/game';
 import Profile from './components/profile';
 import Notfound from './components/notfound'
-import './components/app.scss'
+import './app.scss'
+// import 'bulma'
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
   <Route {...rest} render={(props) => (

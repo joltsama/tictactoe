@@ -2,16 +2,24 @@ import React from 'react'
 import { Component } from 'react'
 import firebase from 'firebase'
 import { Link } from 'react-router-dom';
-import 'bulma'
+// import 'bulma'
 
 function Navbar(props) {
-  return (
-    <header className="navbar">
+  const Navv =
+    <nav className="navbar">
       <div className="container">
         <div className="navbar-brand">
-          <div className="title">tictactoe</div>
+          <div className="navbar-item">
+            <div className="title">tictactoe</div>
+          </div>
+          <a role="button" class="navbar-burger" aria-label="menu" data-target="navMenu" aria-expanded="false"
+            onClick={() => props.toggleNavMenu()}>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
         </div>
-        <div className='navbar-menu'>
+        <div id="navMenu" className={"navbar-menu" + (props.menuvisible === true ? " is-active" : "")}>
           <div className="navbar-end">
             <Link className="navbar-item" to={{
               pathname: '/about',
@@ -19,9 +27,12 @@ function Navbar(props) {
           </div>
         </div>
       </div>
-    </header>
+    </nav>;
+  return (
+    Navv
   );
 }
+
 class Login extends Component {
   constructor(props) {
     super(props);
@@ -33,8 +44,10 @@ class Login extends Component {
       passError: '',
       emailError: '',
       login: 1,
-      notification: ''
-    }
+      notification: '',
+      menuvisible: false
+    };
+    this.toggleNavMenu = this.toggleNavMenu.bind(this);
   }
 
   componentDidMount() {
@@ -48,6 +61,10 @@ class Login extends Component {
         this.props.history.push('/');
       }
     });
+  }
+
+  toggleNavMenu() {
+    this.setState({ menuvisible: !this.state.menuvisible });
   }
 
   validate() {
@@ -103,9 +120,9 @@ class Login extends Component {
             email: this.state.email,
             wins: 0
           });
-          firebase.database().ref('/idtouid/').update({
-            username: firebase.auth().currentUser.uid
-          });
+          firebase.database().ref('/idtouid/' + this.state.user).set(
+            firebase.auth().currentUser.uid
+          );
           console.log('registered');
         })
         .then(() => {
@@ -167,7 +184,7 @@ class Login extends Component {
     return (
       <section className="hero is-fullheight is-primary">
         <div className="hero-head">
-          <Navbar />
+          <Navbar toggleNavMenu={this.toggleNavMenu} menuvisible={this.state.menuvisible} />
         </div>
         <div className={loginclassName}>
           <div className="container">

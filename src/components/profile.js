@@ -2,16 +2,25 @@ import React from 'react'
 import { Component } from 'react'
 import firebase from 'firebase'
 import { Link } from 'react-router-dom';
-import 'bulma'
+// import 'bulma'
+
 
 function Navbar(props) {
-  return (
-    <header className="navbar">
+  const Navv =
+    <nav className="navbar">
       <div className="container">
         <div className="navbar-brand">
-          <div className="title">tictactoe</div>
+          <div className="navbar-item">
+            <div className="title">tictactoe</div>
+          </div>
+          <a role="button" class="navbar-burger" aria-label="menu" data-target="navMenu" aria-expanded="false"
+            onClick={() => props.toggleNavMenu()}>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
         </div>
-        <div className='navbar-menu'>
+        <div id="navMenu" className={"navbar-menu" + (props.menuvisible === true ? " is-active" : "")}>
           <div className="navbar-end">
             <Link className="navbar-item" to={{
               pathname: '/',
@@ -19,7 +28,9 @@ function Navbar(props) {
           </div>
         </div>
       </div>
-    </header>
+    </nav>;
+  return (
+    Navv
   );
 }
 
@@ -35,9 +46,11 @@ class Profile extends Component {
       authError: '',
       notification: '',
       edit: 0,
-      wins: 0
+      wins: 0,
+      menuvisible: false
     };
     this.loadProfile.bind(this);
+    this.toggleNavMenu = this.toggleNavMenu.bind(this);
   }
 
   loadProfile() {
@@ -52,18 +65,12 @@ class Profile extends Component {
       });
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.loadProfile();
   }
 
-  componentDidMount() {
-    // this.loadProfile();
-    // let database = firebase.database();
-    // database.ref('users/' + this.state.player1).on('value', function (snapshot) {
-    //   if (snapshot !== false) {
-    //     this.setState({ player1: snapshot.val().user });
-    //   }
-    // });
+  toggleNavMenu() {
+    this.setState({ menuvisible: !this.state.menuvisible });
   }
 
   validate() {
@@ -91,11 +98,10 @@ class Profile extends Component {
   edit() {
     const isValid = this.validate();
     if (isValid) {
-      console.log("edit");
-      var password = this.state.pass;
+      //console.log("edit");
     }
-    console.log('sdf ');
-    console.log(this.state.notification);
+    //console.log('sdf ');
+    //console.log(this.state.notification);
     this.setState({
       edit: 0,
       notification: <div className="notification">Changes have been saved.</div>
@@ -119,7 +125,7 @@ class Profile extends Component {
     return (
       <section className="hero is-fullheight is-primary">
         <div className="hero-head">
-          <Navbar />
+        <Navbar toggleNavMenu={this.toggleNavMenu} menuvisible={this.state.menuvisible} />
         </div>
         <div className={profileEditClassName}>
           <div className="container">
@@ -214,7 +220,7 @@ class Profile extends Component {
                         <div className="help">{this.state.emailError}</div>
                       </div>
                       <p>
-                        Wins : {this.state.wins}
+                        <label className="label">Wins : </label>{this.state.wins}
                       </p>
                       <div className="buttons">
                         {/* <button className="button" onClick={(e) => { e.preventDefault(); this.setState({ edit: 1 }) }}>Edit</button> */}

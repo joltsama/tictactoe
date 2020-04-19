@@ -1,31 +1,41 @@
 import React from 'react';
 import fire from '../fire';
-import 'bulma';
+// import 'bulma';
 // import './app.scss'
 import firebase from 'firebase';
 import { Redirect, Link } from 'react-router-dom';
 
+
 function Navbar(props) {
-  return (
-    <header className="navbar">
-
-      <div className="navbar-brand">
-        <div className="title">tictactoe</div>
-      </div>
-
-      <div className='navbar-menu'>
-        <div className="navbar-end">
-          <Link className="navbar-item" to={{
-            pathname: '/profile',
-          }}>Profile</Link>
-          <Link className="navbar-item" to={{
-            pathname: '/login',
-            logout: 1
-          }}>Logout</Link>
+  const Navv =
+    <nav className="navbar">
+      <div className="container">
+        <div className="navbar-brand">
+          <div className="navbar-item">
+            <div className="title">tictactoe</div>
+          </div>
+          <a role="button" class="navbar-burger" aria-label="menu" data-target="navMenu" aria-expanded="false"
+            onClick={()=>props.toggleNavMenu()}>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
+        </div>
+        <div id="navMenu" className={"navbar-menu" + (props.menuvisible === true ? " is-active" : "")}>
+          <div className="navbar-end">
+            <Link className="navbar-item" to={{
+              pathname: '/profile',
+            }}>Profile</Link>
+            <Link className="navbar-item" to={{
+              pathname: '/login',
+              logout: 1
+            }}>Logout</Link>
+          </div>
         </div>
       </div>
-
-    </header>
+    </nav>;
+  return (
+    Navv
   );
 }
 
@@ -57,10 +67,15 @@ function calculateWinner(squares) {
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return "Winner-"+squares[a];
     }
   }
-  return null;
+  for (let i = 0; i < squares.length; i++) {
+    if (squares[i] == null)
+      return null;
+
+  }
+  return "Draw";
 }
 
 class Board extends React.Component {
@@ -97,7 +112,7 @@ class Game extends React.Component {
     super(props);
     this.state = {
       messages: [],
-      moves: "0",
+      moves: "s",
       matchFooter: <p>Invite a friend to play.</p>,
       player1: '',
       player2: '',
@@ -106,19 +121,12 @@ class Game extends React.Component {
       gamedir: '',
       startX: 0,
       checkedPrev: 0,
-      wins: 0
+      wins: 0,
+      menuvisible: false
     };
     this.cancelInvitation = this.cancelInvitation.bind(this);
+    this.toggleNavMenu = this.toggleNavMenu.bind(this);
   }
-
-  // componentWillMount() {
-  // let messagesRef = fire.database().ref('messages').orderByKey().limitToLast(100);
-  // messagesRef.on('child_added', snapshot => {
-  //   /* Update React state when message is added at Firebase Database */
-  //   let message = { text: snapshot.val(), id: snapshot.key };
-  //   this.setState({ messages: [message].concat(this.state.messages) });
-  // });
-  // }
 
   async componentDidMount() {
     await this.setPlayerName();
@@ -131,8 +139,8 @@ class Game extends React.Component {
     let promise = new Promise((res, rej) => {
       firebase.database().ref('/users/' + fire.auth().currentUser.uid).once('value')
         .then((result) => {
-          this.setState({ player1: result.val().username, wins:result.val().wins});
-          console.log('username set', result.val().username);
+          this.setState({ player1: result.val().username, wins: result.val().wins });
+          //console.log('username set', result.val().username);
         })
         .then(() => { res(1) })
         .catch((e) => { rej(e) });
@@ -145,22 +153,30 @@ class Game extends React.Component {
 
   inviteFriend() {  // working fine
     let database = firebase.database();
-    database.ref('/session/' + this.state.player2).update({
-      invFrom: this.state.player1
-    })
-      .then(() => {
-        this.setState({ matchFooter: "Invitation sent to " + this.state.player2 });
+    database.ref("/idtouid/" + this.state.player2).once('value', (snapshot) => {
+      if (snapshot.val() !== null && snapshot.val() !== undefined) {
+        database.ref('/session/' + this.state.player2).update({
+          invFrom: this.state.player1
+        })
+          .then(() => {
+            this.setState({ matchFooter: <p>{"Invitation sent to " + this.state.player2}</p> });
+            setTimeout(() => {
+              this.setState({ matchFooter: "" });
+            }, 3000);
+            //console.log('Invited', this.state.player2);
+          })
+          .catch((e) => { console.log(e) });
+      } else {
+        this.setState({ matchFooter: <div class="notification">User does not exist</div> });
         setTimeout(() => {
           this.setState({ matchFooter: "" });
-        }, 3000);
-        console.log('Invited', this.state.player2);
-        // this.checkRunningGame();
-      })
-      .catch(e => console.log(e));
+        }, 5000);
+      }
+    });
   }
 
   checkInvitation() {  // working fine
-    console.log('check invites');
+    //console.log('check invites');
     firebase.database().ref('/session/' + this.state.player1 + '/invFrom').on('value', (snapshot) => {
       if (snapshot.val() !== null && snapshot.val() !== 'none') {
         this.setInvitation(snapshot.val());
@@ -173,7 +189,7 @@ class Game extends React.Component {
       <div>
         <p>Invitation from {username}</p>
         <div className="buttons">
-          <button className="button is-dark" onClick={() => this.acceptInvitation(username)}>Accept Invitation</button>
+          <button className="button " onClick={() => this.acceptInvitation(username)}>Accept Invitation</button>
           <button className="button" onClick={this.cancelInvitation}>Cancel</button>
         </div>
       </div>;
@@ -186,6 +202,12 @@ class Game extends React.Component {
   }
 
   acceptInvitation(player2) {  // working fine
+    firebase.database().ref('/session/' + player2 + '/playing').once('value').then((snapshot) => {
+      if (snapshot.val() === 1) {
+        this.setState({ matchFooter: <p>Cant accept, the user is already in a match.</p> })
+        return;
+      }
+    })
     this.setState({
       matchFooter: 'You play Os',
       player2: player2,
@@ -194,7 +216,7 @@ class Game extends React.Component {
     }, () => {
       firebase.database().ref('/session/' + player2 + '/').update({
         game: {
-          moves: "0",
+          moves: "s",
           player2: this.state.player1,
           startX: 1,
           gamedir: this.state.gamedir,
@@ -204,7 +226,7 @@ class Game extends React.Component {
         .then(() => {
           firebase.database().ref('/session/' + this.state.player1 + '/').update({
             game: {
-              moves: "0",
+              moves: "s",
               player2: player2,
               startX: 0,
               gamedir: this.state.gamedir,
@@ -221,20 +243,17 @@ class Game extends React.Component {
 
   cancelInvitation() { /// working fine
     this.setState({ matchFooter: '' });
-    firebase.database().ref('/session/' + this.state.player1 + '/invFrom').set("none").then(() => console.log('Invitation cleared'));
+    firebase.database().ref('/session/' + this.state.player1 + '/invFrom').set("none").catch((e) => console.log(e));
   }
 
 
   // Game Status ---------------------------------------
   checkRunningGame() {
-    console.log('check running game with username', this.state.player1);
+    //console.log('check running game with username', this.state.player1);
     let listener = firebase.database().ref('/session/' + this.state.player1 + '/game/')
     listener.on('value', (snapshot) => {
       if (snapshot.val() !== null && snapshot.val().player2 !== null && snapshot.val().player2 !== 'none') {
         const { gamedir, moves, startX, player2 } = snapshot.val();
-        let turn = '';
-        if (snapshot.val().startX === 1 && snapshot.val().moves.length % 2 === 1) turn = 'Your turn';
-        else if (snapshot.val().startX === 0 && snapshot.val().moves.length % 2 === 0) turn = 'Your turn';
 
         const gameState = {
           gamedir: gamedir,
@@ -252,31 +271,38 @@ class Game extends React.Component {
 
   startGame(gameState) {
     this.setState(gameState);
-    console.log('resume game with username', this.state.player1);
+    //console.log('resume game with username', this.state.player1);
 
     firebase.database().ref(this.state.gamedir).on('value', (snapshot) => {
       if (snapshot.val() !== null && snapshot.val().player2 !== null && snapshot.val().player2 !== 'none') {
         const moves = snapshot.val().moves;
         const squares = extractSquares(moves, this.state.startX);
         const win = calculateWinner(squares);
-        if (moves.charAt(moves.length - 1) === '-') {
+        if (win !== null) {
+          const winEl =
+            <div className="field is-horizontal">
+              <div className="field-label is-normal">
+                <label className="label">{win}</label>
+              </div>
+              <div class="field-body">
+                <div className="field">
+                  <div className="control">
+                    <button className="button" onClick={() => this.resetGame(this.state.player2)}>Reset</button>
+                  </div>
+                </div>
+              </div>
+            </div>;
+
+
           this.setState({
             moves: moves,
-            matchFooter: <p>Winner !! {win}  <button className="button" onClick={() => this.resetGame(this.state.player2)}>Reset</button></p>
+            matchFooter: winEl
           });
-          return;
-        }
-        if (win !== null) {
-          firebase.database().ref(this.state.gamedir).update({
-            moves: moves + '-'
-          })
-          .then(()=>{
-            firebase.database().ref(/users/+firebase.auth().currentUser.uid)
+          firebase.database().ref(/users/ + firebase.auth().currentUser.uid)
             .update({
               wins: this.state.wins + 1
             })
-          })
-          .catch(e => console.log(e));
+            .catch(e => console.log(e));
           return;
         }
 
@@ -288,7 +314,7 @@ class Game extends React.Component {
           moves: moves
         };
 
-        console.log('currGameState', currGameState);
+        //console.log('currGameState', currGameState);
         this.setState(currGameState);
       }
     })
@@ -298,7 +324,9 @@ class Game extends React.Component {
   // Gameplay ----------------------------------------
   handleClick(i) {
     const moves = this.state.moves;
-
+    if (moves.includes(String(i))) {
+      return;
+    }
     if (this.state.startX === 1 && moves.length % 2 === 0)
       return;
     if (this.state.startX === 0 && moves.length % 2 === 1)
@@ -307,8 +335,8 @@ class Game extends React.Component {
     firebase.database().ref(this.state.gamedir).update({
       moves: this.state.moves + String(i)
     }).then(() => {
-      console.log('value updated', this.state.gamedir);
-      console.log(moves);
+      //console.log('value updated', this.state.gamedir);
+      //console.log(moves);
     }).catch(e => console.log(e));
   }
 
@@ -318,11 +346,11 @@ class Game extends React.Component {
       player2: "none",
       gameState: 0,
       gamedir: "none",
-      moves: "0"
+      moves: "s"
     }, () => {
       firebase.database().ref('/session/' + player2 + '/').update({
         game: {
-          moves: "0",
+          moves: "s",
           player2: "none",
           startX: 0,
           gamedir: "none"
@@ -332,7 +360,7 @@ class Game extends React.Component {
         .then(() => {
           firebase.database().ref('/session/' + this.state.player1 + '/').update({
             game: {
-              moves: "0",
+              moves: "s",
               player2: "none",
               startX: 0,
               gamedir: "none"
@@ -347,7 +375,6 @@ class Game extends React.Component {
     });
   }
 
-
   addMessage(e) {
     e.preventDefault();
     fire.database().ref('messages').push(this.inputEl.value);
@@ -358,116 +385,123 @@ class Game extends React.Component {
   // Misc ---------------------------------
   logout() {
     firebase.auth().signOut().then(function () {
-      console.log('logged out');
+      //console.log('logged out');
       return <Redirect to='/login' />;
     });
+  }
+
+  toggleNavMenu() {
+    this.setState({menuvisible: !this.state.menuvisible});
   }
 
   render() {
 
 
     let squares = extractSquares(this.state.moves, this.state.startX);
-    const winner = calculateWinner(squares);
+    // const winner = calculateWinner(squares);
 
-    let status;
-    if (winner) {
-      status = 'Winner ' + winner;
-    } else {
-      status = 'Next player: ' + (this.state.xNext ? 'X' : 'O');
-    }
-
-    this.state.messages.map(message => <li key={message.id}>{message.text}</li>);
+    // this.state.messages.map(message => <li key={message.id}>{message.text}</li>);
 
     return (
-      <section className="hero is-fullheight is-dark">
+      <section className="hero is-fullheight ">
+
         <div className="hero-head">
-          <Navbar onClick={() => this.logout()} />
+          <Navbar toggleNavMenu={this.toggleNavMenu} menuvisible={this.state.menuvisible} />
         </div>
+
         <div className="hero-body">
           <div className="container">
 
-            <h1 className="title">Let's play!</h1>
-
-            <div className="columns">
-
-              <div className="column">
-                {/*  coloumn 1 ----------------------------------------------------------*/}
-                <div className={"field is-grouped " + (this.state.gameState === 1 ? "is-hidden" : "")}>
-                  <div className="control is-expanded">
-                    <input
-                      className="input"
-                      placeholder="Username"
-                      value={this.setState.player2}
-                      onChange={e => { e.preventDefault(); this.setState({ player2: e.target.value }); }}
-                    />
-                  </div>
-                  <div className="control">
-                    <button
-                      className="button"
-                      onClick={() => this.inviteFriend()}
-                    >Invite a friend</button>
-                  </div>
+            {/* Lets play and invite */}
+            <section class={"section" + (this.state.gameState === 1 ? " is-hidden" : "")}>
+              <h1 className="title">Let's play!</h1>
+              <div className={"field is-grouped " + (this.state.gameState === 1 ? "is-hidden" : "")}>
+                <div className="control is-expanded">
+                  <input
+                    className="input"
+                    placeholder="Username"
+                    value={this.setState.player2}
+                    onChange={e => { e.preventDefault(); this.setState({ player2: e.target.value }); }}
+                  />
                 </div>
-                {/* <button className="button">Find an opponent</button> */}
-
-                {/* <div className={this.state.gameState === 1 ? "" : "is-hidden"}> */}
-                {/* <div className="is-hidden">
-                  <div>{status}</div>
-                  <ol>{moves}</ol>
-                </div> */}
+                <div className="control">
+                  <button
+                    className="button"
+                    onClick={() => this.inviteFriend()}
+                  >Invite a friend</button>
+                </div>
               </div>
+              {this.state.matchFooter}
+            </section>
 
-              <div className="column">
-                {/*  coloumn 2 ----------------------------------------------------------*/}
-                <div className="card">
+            {/* Game Coloumns */}
+            <div class={(this.state.gameState === 0 ? " is-hidden" : "")}>
+              <h1 className="title">Play!</h1>
+              <div className="columns">
 
-                  <div className="has-text-centered">
-                    {this.state.player1} <span className="tag">VS</span> {this.state.player2}
-                  </div>
+                {/* Game Board */}
+                <div className="column">
 
-                  <div className="card-content">
-                    <div className="game">
-                      <div className="game-board">
-                        <Board squares={squares} onClick={(i) => this.handleClick(i)} />
-                        {/* <Boardtable /> */}
+                  <div className="card">
+
+                    <div className="columns">
+                      <div className="column has-text-centered">
+                        <label className="label is-normal">{this.state.player1}</label>
+                      </div>
+                      <div className="column has-text-centered is-narrow">
+                        <span className="tag">VS</span>
+                      </div>
+                      <div className="column has-text-centered">
+                        <label className="label is-normal">{this.state.player2}</label>
                       </div>
                     </div>
 
-                  </div>
+                    <div className="card-content">
+                      <div className="game">
+                        <div className="gameboard">
+                          <Board squares={squares} onClick={(i) => this.handleClick(i)} />
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="card-footer">
-                    <div className="card-footer-item">
-                      {this.state.matchFooter}
+                    <div className="card-footer">
+                      <div className="card-footer-item">
+                        {this.state.matchFooter}
+                      </div>
                     </div>
                   </div>
+
                 </div>
+
+                {/* Msgs */}
+                <div className="column">
+                  {/* /*  coloumn 3 ---------------------------------------------------------- */}
+
+                  <form onSubmit={this.addMessage.bind(this)}>
+                    <div className="field is-grouped">
+                      <div className="control is-expanded">
+                        <input className="input" placeholder="Type message" ref={el => this.inputEl = el} />
+                      </div>
+                      <div className="control">
+                        <div className="button" type="submit">Submit</div>
+                      </div>
+                    </div>
+                    <article className="message">
+                      <div className="message-body">
+                        <ul>
+                          {
+                            this.state.messages.map(message => <li key={message.id}>{message.text}</li>)
+                          }
+                        </ul>
+                      </div>
+                    </article>
+                  </form>
+
+                </div>
+
               </div>
-
-              <div className="column">
-                {/*  coloumn 3 ----------------------------------------------------------*/}
-                <form onSubmit={this.addMessage.bind(this)}>
-                  <div className="field is-grouped">
-                    <div className="control is-expanded">
-                      <input className="input" placeholder="Type message" ref={el => this.inputEl = el} />
-                    </div>
-                    <div className="control">
-                      <div className="button" type="submit">Submit</div>
-                    </div>
-                  </div>
-                  <article className="message">
-                    <div className="message-body">
-                      <ul>
-                        {
-                          this.state.messages.map(message => <li key={message.id}>{message.text}</li>)
-                        }
-                      </ul>
-                    </div>
-                  </article>
-
-                </form>
-              </div>
-
             </div>
+
           </div>
         </div >
       </section >
