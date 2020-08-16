@@ -1,3 +1,4 @@
 # TicTacToe
 
-My journey of learning react and firebase
+- react and firebase implementation
+- 2 players
